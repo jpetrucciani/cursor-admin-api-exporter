@@ -181,6 +181,12 @@
           "enum": ["debug", "info", "warn", "error"],
           "default": "info",
           "description": "Log level"
+        },
+        "collectionInterval": {
+          "type": "string",
+          "pattern": "^[0-9]+(ns|us|µs|ms|s|m|h)$",
+          "default": "5m",
+          "description": "Cursor Admin API refresh interval"
         }
       },
       "additionalProperties": false,

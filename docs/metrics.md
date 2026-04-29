@@ -274,11 +274,11 @@ cursor_tokens_consumed_by_user_total{user_email="jane@example.com"} 180000
 
 ### `cursor_exporter_scrape_duration_seconds`
 - **Type**: Histogram
-- **Description**: Time spent scraping the Cursor Admin API
+- **Description**: Time spent serving cached metrics to Prometheus
 - **Labels**: None
 
 ```prometheus
-# HELP cursor_exporter_scrape_duration_seconds Time spent scraping Cursor Admin API
+# HELP cursor_exporter_scrape_duration_seconds Time spent serving cached Cursor metrics
 # TYPE cursor_exporter_scrape_duration_seconds histogram
 cursor_exporter_scrape_duration_seconds_bucket{le="0.1"} 0
 cursor_exporter_scrape_duration_seconds_bucket{le="0.5"} 12
@@ -291,13 +291,36 @@ cursor_exporter_scrape_duration_seconds_sum 18.5
 cursor_exporter_scrape_duration_seconds_count 48
 ```
 
-### `cursor_exporter_scrape_errors_total`
-- **Type**: Counter
-- **Description**: Total number of scrape errors
+### `cursor_exporter_refresh_duration_seconds`
+- **Type**: Histogram
+- **Description**: Time spent refreshing Cursor Admin API data
 - **Labels**: None
 
 ```prometheus
-# HELP cursor_exporter_scrape_errors_total Total number of scrape errors
+# HELP cursor_exporter_refresh_duration_seconds Time spent refreshing Cursor Admin API data
+# TYPE cursor_exporter_refresh_duration_seconds histogram
+cursor_exporter_refresh_duration_seconds_sum 12.8
+cursor_exporter_refresh_duration_seconds_count 4
+```
+
+### `cursor_exporter_last_refresh_timestamp_seconds`
+- **Type**: Gauge
+- **Description**: Unix timestamp of the last successful Cursor API refresh
+- **Labels**: None
+
+```prometheus
+# HELP cursor_exporter_last_refresh_timestamp_seconds Unix timestamp of the last successful Cursor API refresh
+# TYPE cursor_exporter_last_refresh_timestamp_seconds gauge
+cursor_exporter_last_refresh_timestamp_seconds 1716220800
+```
+
+### `cursor_exporter_scrape_errors_total`
+- **Type**: Counter
+- **Description**: Total number of Cursor API collection errors
+- **Labels**: None
+
+```prometheus
+# HELP cursor_exporter_scrape_errors_total Total number of Cursor API collection errors
 # TYPE cursor_exporter_scrape_errors_total counter
 cursor_exporter_scrape_errors_total 2
 ```
@@ -320,9 +343,9 @@ cursor_exporter_scrape_errors_total 2
 
 ### Collection Frequency
 
-- **Default**: Every 30 seconds (configurable via Prometheus)
-- **Recommended**: 30-60 seconds for production
-- **Minimum**: 15 seconds (to avoid API rate limits)
+- **Cursor API refresh default**: Every 5 minutes (configurable via `COLLECTION_INTERVAL`)
+- **Prometheus scrape default**: Every 30 seconds (configured in Prometheus)
+- **Recommended**: Keep Prometheus scrapes at 30-60 seconds and Cursor API refreshes at 5 minutes or higher
 
 ### Data Freshness
 

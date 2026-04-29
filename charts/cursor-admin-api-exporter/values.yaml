@@ -50,6 +50,8 @@ config:
   metricsPath: "/metrics"
   # Log level (debug, info, warn, error)
   logLevel: "info"
+  # Cursor Admin API refresh interval
+  collectionInterval: "5m"
 
 serviceAccount:
   # Specifies whether a service account should be created

@@ -71,6 +71,8 @@ type UsageEventsResponse struct {
 	Total  int          `json:"total"`
 }
 
+const maxUsageEventsPageSize = 1000
+
 type aggregatedData struct {
 	linesAdded      int
 	linesDeleted    int
@@ -197,7 +199,7 @@ func (c *CursorClient) GetDailyUsage(startDate, endDate string) ([]DailyUsage, e
 
 	aggMap := make(map[string]*aggregatedData)
 	for _, d := range response.Data {
-		dateStr := time.UnixMilli(d.Date).Format("2006-01-02")
+		dateStr := time.UnixMilli(d.Date).UTC().Format("2006-01-02")
 		if _, ok := aggMap[dateStr]; !ok {
 			aggMap[dateStr] = &aggregatedData{
 				modelCounts:     make(map[string]int),
@@ -302,7 +304,7 @@ func (c *CursorClient) GetSpending(limit int, offset int) ([]SpendingData, error
 			return nil, fmt.Errorf("failed to unmarshal spending response: %w", err)
 		}
 
-		dateStr := time.UnixMilli(response.SubscriptionCycleStart).Format("2006-01-02")
+		dateStr := time.UnixMilli(response.SubscriptionCycleStart).UTC().Format("2006-01-02")
 
 		for _, s := range response.TeamMemberSpend {
 			allSpending = append(allSpending, SpendingData{
@@ -325,6 +327,10 @@ func (c *CursorClient) GetSpending(limit int, offset int) ([]SpendingData, error
 func (c *CursorClient) GetUsageEvents(userEmail string, limit int, offset int, startDate, endDate string) ([]UsageEvent, error) {
 	var allEvents []UsageEvent
 	page := 1
+	pageSize := limit
+	if pageSize <= 0 || pageSize > maxUsageEventsPageSize {
+		pageSize = maxUsageEventsPageSize
+	}
 	for {
 		reqBody := struct {
 			Email     *string `json:"email,omitempty"`
@@ -334,7 +340,7 @@ func (c *CursorClient) GetUsageEvents(userEmail string, limit int, offset int, s
 			PageSize  int     `json:"pageSize"`
 		}{
 			Page:     page,
-			PageSize: limit,
+			PageSize: pageSize,
 		}
 		if userEmail != "" {
 			reqBody.Email = &userEmail
@@ -367,6 +373,7 @@ func (c *CursorClient) GetUsageEvents(userEmail string, limit int, offset int, s
 			UsageEvents []struct {
 				Timestamp  string `json:"timestamp"`
 				Model      string `json:"model"`
+				Kind       string `json:"kind"`
 				KindLabel  string `json:"kindLabel"`
 				TokenUsage *struct {
 					InputTokens      int `json:"inputTokens"`
@@ -397,8 +404,13 @@ func (c *CursorClient) GetUsageEvents(userEmail string, limit int, offset int, s
 				tokens = e.TokenUsage.InputTokens + e.TokenUsage.OutputTokens + e.TokenUsage.CacheReadTokens + e.TokenUsage.CacheWriteTokens
 			}
 
+			eventType := e.Kind
+			if eventType == "" {
+				eventType = e.KindLabel
+			}
+
 			allEvents = append(allEvents, UsageEvent{
-				EventType:      e.KindLabel,
+				EventType:      eventType,
 				UserEmail:      e.UserEmail,
 				TokensConsumed: tokens,
 				Model:          e.Model,

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -46,8 +47,16 @@ func TestNewCursorExporter(t *testing.T) {
 		t.Error("Expected scrapeDuration metric to be non-nil")
 	}
 
+	if exporter.refreshDuration == nil {
+		t.Error("Expected refreshDuration metric to be non-nil")
+	}
+
 	if exporter.scrapeErrors == nil {
 		t.Error("Expected scrapeErrors metric to be non-nil")
+	}
+
+	if exporter.lastRefreshTimestamp == nil {
+		t.Error("Expected lastRefreshTimestamp metric to be non-nil")
 	}
 }
 
@@ -74,7 +83,10 @@ func TestCursorExporter_Describe(t *testing.T) {
 }
 
 func TestCursorExporter_Collect_WithMockServer(t *testing.T) {
+	var requests int64
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt64(&requests, 1)
+
 		authHeader := r.Header.Get("Authorization")
 		if authHeader != "Bearer test-token" {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -253,6 +265,8 @@ func TestCursorExporter_Collect_WithMockServer(t *testing.T) {
 	defer server.Close()
 
 	exporter := NewCursorExporter(server.URL, "test-token")
+	exporter.refreshCursorMetrics()
+	requestsBeforeCollect := atomic.LoadInt64(&requests)
 
 	ch := make(chan prometheus.Metric, 100)
 	go func() {
@@ -271,6 +285,10 @@ func TestCursorExporter_Collect_WithMockServer(t *testing.T) {
 	if metricCount == 0 {
 		t.Error("Expected at least one metric to be collected")
 	}
+
+	if got := atomic.LoadInt64(&requests); got != requestsBeforeCollect {
+		t.Errorf("Expected collect to use cached metrics without API requests, got %d requests before and %d after", requestsBeforeCollect, got)
+	}
 }
 
 func TestCursorExporter_Collect_HandlesErrors(t *testing.T) {
@@ -280,6 +298,7 @@ func TestCursorExporter_Collect_HandlesErrors(t *testing.T) {
 	defer server.Close()
 
 	exporter := NewCursorExporter(server.URL, "test-token")
+	exporter.refreshCursorMetrics()
 
 	ch := make(chan prometheus.Metric, 100)
 	go func() {
@@ -301,26 +320,12 @@ func TestCursorExporter_Collect_HandlesErrors(t *testing.T) {
 }
 
 func TestCursorExporter_Collect_HandlesPanics(t *testing.T) {
-	invalidClient := client.NewCursorClient("http://invalid", "token")
-	exporter := &CursorExporter{
-		client:              nil,
-		teamMembersExporter: NewTeamMembersExporter(invalidClient),
-		dailyUsageExporter:  NewDailyUsageExporter(invalidClient),
-		spendingExporter:    NewSpendingExporter(invalidClient),
-		usageEventsExporter: NewUsageEventsExporter(invalidClient),
-		scrapeDuration: prometheus.NewHistogram(
-			prometheus.HistogramOpts{
-				Name: "cursor_exporter_scrape_duration_seconds",
-				Help: "Time spent scraping Cursor Admin API",
-			},
-		),
-		scrapeErrors: prometheus.NewCounter(
-			prometheus.CounterOpts{
-				Name: "cursor_exporter_scrape_errors_total",
-				Help: "Total number of scrape errors",
-			},
-		),
-	}
+	exporter := NewCursorExporter("http://invalid", "token")
+	exporter.teamMembersExporter = nil
+	exporter.storeSnapshot(cursorMetricsSnapshot{
+		hasTeamMembers: true,
+		lastRefresh:    time.Now(),
+	})
 
 	ch := make(chan prometheus.Metric, 100)
 	go func() {

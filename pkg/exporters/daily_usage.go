@@ -105,6 +105,10 @@ func (e *DailyUsageExporter) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
+	e.CollectUsage(ch, usage)
+}
+
+func (e *DailyUsageExporter) CollectUsage(ch chan<- prometheus.Metric, usage []client.DailyUsage) {
 	for _, daily := range usage {
 		ch <- prometheus.MustNewConstMetric(
 			e.linesAdded,

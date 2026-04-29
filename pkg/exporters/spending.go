@@ -64,6 +64,10 @@ func (e *SpendingExporter) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
+	e.CollectSpending(ch, spending)
+}
+
+func (e *SpendingExporter) CollectSpending(ch chan<- prometheus.Metric, spending []client.SpendingData) {
 	var totalSpend int
 	var totalPremiumRequests int
 

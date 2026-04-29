@@ -17,6 +17,8 @@ import (
 	"github.com/matanbaruch/cursor-admin-api-exporter/pkg/utils"
 )
 
+const defaultCollectionInterval = 5 * time.Minute
+
 func debugLoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -52,6 +54,25 @@ func (w *wrappedWriter) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
+func parseDurationEnv(key string, defaultValue time.Duration) time.Duration {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+
+	duration, err := time.ParseDuration(value)
+	if err != nil || duration <= 0 {
+		logrus.WithFields(logrus.Fields{
+			"key":     key,
+			"value":   value,
+			"default": defaultValue,
+		}).Warn("Invalid duration, using default")
+		return defaultValue
+	}
+
+	return duration
+}
+
 func main() {
 	cursorAPIURL := utils.GetEnvWithDefault("CURSOR_API_URL", "https://api.cursor.com")
 	cursorAPIToken := os.Getenv("CURSOR_API_TOKEN")
@@ -83,6 +104,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "    LISTEN_ADDRESS: HTTP server listen address (default: :8080)\n")
 		fmt.Fprintf(os.Stderr, "    METRICS_PATH: Metrics endpoint path (default: /metrics)\n")
 		fmt.Fprintf(os.Stderr, "    LOG_LEVEL: Logging level (default: info)\n")
+		fmt.Fprintf(os.Stderr, "    COLLECTION_INTERVAL: Cursor API refresh interval (default: 5m)\n")
 		fmt.Fprintf(os.Stderr, "  Use --help or -h to display this message.\n")
 		os.Exit(0)
 	}
@@ -91,11 +113,14 @@ func main() {
 		logrus.Fatal("CURSOR_API_TOKEN environment variable is required")
 	}
 
+	collectionInterval := parseDurationEnv("COLLECTION_INTERVAL", defaultCollectionInterval)
+
 	logrus.WithFields(logrus.Fields{
-		"cursor_api_url": cursorAPIURL,
-		"listen_addr":    listenAddr,
-		"metrics_path":   metricsPath,
-		"log_level":      logLevel,
+		"cursor_api_url":      cursorAPIURL,
+		"listen_addr":         listenAddr,
+		"metrics_path":        metricsPath,
+		"log_level":           logLevel,
+		"collection_interval": collectionInterval,
 	}).Info("Starting Cursor Admin API Exporter")
 
 	exporter := exporters.NewCursorExporter(cursorAPIURL, cursorAPIToken)
@@ -158,6 +183,7 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	exporter.Start(ctx, collectionInterval)
 
 	go func() {
 		sigChan := make(chan os.Signal, 1)

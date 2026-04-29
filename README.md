@@ -88,6 +88,7 @@ helm install cursor-admin-api-exporter oci://ghcr.io/matanbaruch/cursor-admin-ap
 | `LISTEN_ADDRESS` | HTTP server listen address | `:8080` |
 | `METRICS_PATH` | Metrics endpoint path | `/metrics` |
 | `LOG_LEVEL` | Logging level (debug, info, warn, error) | `info` |
+| `COLLECTION_INTERVAL` | Cursor Admin API refresh interval | `5m` |
 
 ### Getting a Cursor API Token
 
@@ -130,8 +131,10 @@ The exporter provides the following metrics:
 - `cursor_tokens_consumed_by_user_total` - Tokens consumed by user
 
 ### Exporter Metrics
-- `cursor_exporter_scrape_duration_seconds` - Time spent scraping the API
-- `cursor_exporter_scrape_errors_total` - Total scrape errors
+- `cursor_exporter_scrape_duration_seconds` - Time spent serving cached metrics
+- `cursor_exporter_refresh_duration_seconds` - Time spent refreshing Cursor API data
+- `cursor_exporter_last_refresh_timestamp_seconds` - Last successful Cursor API refresh time
+- `cursor_exporter_scrape_errors_total` - Total Cursor API collection errors
 
 ## Development
 

@@ -41,6 +41,7 @@ docker run -d \
   -e CURSOR_API_TOKEN=your_token_here \
   -e CURSOR_API_URL=https://api.cursor.com \
   -e LOG_LEVEL=info \
+  -e COLLECTION_INTERVAL=5m \
   ghcr.io/matanbaruch/cursor-admin-api-exporter:latest
 ```
 
@@ -154,6 +155,7 @@ The exporter provides several categories of metrics:
 | `LISTEN_ADDRESS` | `:8080` | HTTP server address |
 | `METRICS_PATH` | `/metrics` | Metrics endpoint path |
 | `LOG_LEVEL` | `info` | Logging level (debug, info, warn, error) |
+| `COLLECTION_INTERVAL` | `5m` | Cursor Admin API refresh interval |
 
 ### Example Configuration
 
@@ -164,6 +166,7 @@ export CURSOR_API_URL="https://api.cursor.com"
 export LISTEN_ADDRESS=":8080"
 export METRICS_PATH="/metrics"
 export LOG_LEVEL="info"
+export COLLECTION_INTERVAL="5m"
 
 # Run the exporter
 ./cursor-admin-api-exporter

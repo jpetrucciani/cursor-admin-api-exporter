@@ -139,11 +139,12 @@ The following table lists the configurable parameters and their default values.
 
 ### Application Configuration
 
-| Parameter              | Description             | Default      |
-| ---------------------- | ----------------------- | ------------ |
-| `config.listenAddress` | Listen address and port | `":8080"`    |
-| `config.metricsPath`   | Metrics endpoint path   | `"/metrics"` |
-| `config.logLevel`      | Log level               | `"info"`     |
+| Parameter                   | Description                       | Default      |
+| --------------------------- | --------------------------------- | ------------ |
+| `config.listenAddress`      | Listen address and port           | `":8080"`    |
+| `config.metricsPath`        | Metrics endpoint path             | `"/metrics"` |
+| `config.logLevel`           | Log level                         | `"info"`     |
+| `config.collectionInterval` | Cursor Admin API refresh interval | `"5m"`       |
 
 ## Usage Examples
 

@@ -26,6 +26,7 @@ The exporter is configured primarily through environment variables:
 | `LISTEN_ADDRESS` | `:8080` | HTTP server listen address |
 | `METRICS_PATH` | `/metrics` | Path for metrics endpoint |
 | `LOG_LEVEL` | `info` | Logging level (debug, info, warn, error) |
+| `COLLECTION_INTERVAL` | `5m` | Cursor Admin API refresh interval |
 
 ## Configuration Examples
 
@@ -48,6 +49,7 @@ export CURSOR_API_URL="https://api.cursor.com"
 export LISTEN_ADDRESS="0.0.0.0:8080"
 export METRICS_PATH="/metrics"
 export LOG_LEVEL="debug"
+export COLLECTION_INTERVAL="5m"
 
 # Run the exporter
 ./cursor-admin-api-exporter
@@ -65,6 +67,7 @@ docker run -d \
   -e LISTEN_ADDRESS=:8080 \
   -e METRICS_PATH=/metrics \
   -e LOG_LEVEL=info \
+  -e COLLECTION_INTERVAL=5m \
   ghcr.io/matanbaruch/cursor-admin-api-exporter:latest
 ```
 
@@ -85,6 +88,7 @@ services:
       - LISTEN_ADDRESS=:8080
       - METRICS_PATH=/metrics
       - LOG_LEVEL=info
+      - COLLECTION_INTERVAL=5m
     restart: unless-stopped
 ```
 
@@ -102,6 +106,7 @@ data:
   LISTEN_ADDRESS: ":8080"
   METRICS_PATH: "/metrics"
   LOG_LEVEL: "info"
+  COLLECTION_INTERVAL: "5m"
 ```
 
 #### Secret
@@ -161,6 +166,7 @@ config:
   listenAddress: ":8080"
   metricsPath: "/metrics"
   logLevel: "info"
+  collectionInterval: "5m"
 
 resources:
   limits:

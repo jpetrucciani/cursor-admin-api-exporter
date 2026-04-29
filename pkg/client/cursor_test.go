@@ -170,6 +170,10 @@ func TestCursorClient_GetDailyUsage(t *testing.T) {
 		t.Errorf("Expected 100 lines added, got %d", usage[0].LinesAdded)
 	}
 
+	if usage[0].Date != "2023-01-01" {
+		t.Errorf("Expected date '2023-01-01', got %s", usage[0].Date)
+	}
+
 	if usage[0].SuggestionAcceptanceRate != 0.8 {
 		t.Errorf("Expected 0.8 acceptance rate, got %f", usage[0].SuggestionAcceptanceRate)
 	}
@@ -285,6 +289,7 @@ func TestCursorClient_GetUsageEvents(t *testing.T) {
 			UsageEvents []struct {
 				Timestamp  string `json:"timestamp"`
 				Model      string `json:"model"`
+				Kind       string `json:"kind"`
 				KindLabel  string `json:"kindLabel"`
 				TokenUsage *struct {
 					InputTokens      int `json:"inputTokens"`
@@ -301,6 +306,7 @@ func TestCursorClient_GetUsageEvents(t *testing.T) {
 			UsageEvents: []struct {
 				Timestamp  string `json:"timestamp"`
 				Model      string `json:"model"`
+				Kind       string `json:"kind"`
 				KindLabel  string `json:"kindLabel"`
 				TokenUsage *struct {
 					InputTokens      int `json:"inputTokens"`
@@ -313,7 +319,7 @@ func TestCursorClient_GetUsageEvents(t *testing.T) {
 				{
 					Timestamp: strconv.FormatInt(time.Now().UnixMilli(), 10),
 					Model:     "gpt-4",
-					KindLabel: "completion",
+					Kind:      "completion",
 					TokenUsage: &struct {
 						InputTokens      int `json:"inputTokens"`
 						OutputTokens     int `json:"outputTokens"`
@@ -359,6 +365,52 @@ func TestCursorClient_GetUsageEvents(t *testing.T) {
 
 	if events[0].TokensConsumed != 100 {
 		t.Errorf("Expected 100 tokens consumed, got %d", events[0].TokensConsumed)
+	}
+}
+
+func TestCursorClient_GetUsageEventsClampsPageSize(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var reqBody struct {
+			PageSize int `json:"pageSize"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+			t.Errorf("Failed to decode request body: %v", err)
+		}
+
+		if reqBody.PageSize != maxUsageEventsPageSize {
+			t.Errorf("Expected pageSize %d, got %d", maxUsageEventsPageSize, reqBody.PageSize)
+		}
+
+		response := struct {
+			UsageEvents []struct{} `json:"usageEvents"`
+			Pagination  struct {
+				HasNextPage bool `json:"hasNextPage"`
+			} `json:"pagination"`
+		}{
+			UsageEvents: []struct{}{},
+			Pagination: struct {
+				HasNextPage bool `json:"hasNextPage"`
+			}{
+				HasNextPage: false,
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			t.Logf("Failed to encode response: %v", err)
+		}
+	}))
+	defer server.Close()
+
+	client := NewCursorClient(server.URL, "test-token")
+	events, err := client.GetUsageEvents("", maxUsageEventsPageSize+1, 0, "", "")
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if len(events) != 0 {
+		t.Errorf("Expected 0 events, got %d", len(events))
 	}
 }
 

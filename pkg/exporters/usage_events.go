@@ -9,6 +9,8 @@ import (
 	"github.com/matanbaruch/cursor-admin-api-exporter/pkg/client"
 )
 
+const usageEventsPageSize = 1000
+
 type UsageEventsExporter struct {
 	client *client.CursorClient
 
@@ -90,12 +92,16 @@ func (e *UsageEventsExporter) Collect(ch chan<- prometheus.Metric) {
 	endDate := time.Now().Format("2006-01-02")
 	startDate := time.Now().AddDate(0, 0, -30).Format("2006-01-02")
 
-	events, err := e.client.GetUsageEvents("", 5000, 0, startDate, endDate)
+	events, err := e.client.GetUsageEvents("", usageEventsPageSize, 0, startDate, endDate)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to get usage events")
 		return
 	}
 
+	e.CollectEvents(ch, events)
+}
+
+func (e *UsageEventsExporter) CollectEvents(ch chan<- prometheus.Metric, events []client.UsageEvent) {
 	eventTypeCount := make(map[string]int)
 	userEventCount := make(map[string]int)
 	modelEventCount := make(map[string]int)

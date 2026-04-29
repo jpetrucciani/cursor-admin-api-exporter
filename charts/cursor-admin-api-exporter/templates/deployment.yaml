@@ -51,6 +51,8 @@ spec:
               value: {{ .Values.config.metricsPath | quote }}
             - name: LOG_LEVEL
               value: {{ .Values.config.logLevel | quote }}
+            - name: COLLECTION_INTERVAL
+              value: {{ .Values.config.collectionInterval | quote }}
           {{- if .Values.probes.readiness.enabled }}
           readinessProbe:
             httpGet:

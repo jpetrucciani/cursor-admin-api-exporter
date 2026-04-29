@@ -46,6 +46,10 @@ func (e *TeamMembersExporter) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
+	e.CollectMembers(ch, members)
+}
+
+func (e *TeamMembersExporter) CollectMembers(ch chan<- prometheus.Metric, members []client.TeamMember) {
 	ch <- prometheus.MustNewConstMetric(
 		e.totalMembers,
 		prometheus.GaugeValue,
